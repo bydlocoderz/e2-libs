@@ -1,0 +1,239 @@
+@name NPC RAIDS
+#@author pruf
+@inputs [S1 S2 S3 S4 S5 S6 S7 S8 S9]:entity
+@persist Ent:entity [Raids Spawnpoints CurRaid Quota CurEntity RegeneratingEntities]:array [Raid I SP TimeUntilNextWave HP Particles HealthMultiplier RandNum]:number
+
+#[
+//Raid structure//
+Example: [ "npc_metropolice@smg@100@1;npc_rollermine;npc_zombie@_@200" , "npc_zombie@_@100@1;npc_zombie@_@100@2;npc_zombie@_@100@3" ]
+Every array string value is a wave containing bunch of NPCs. So, if you want 2 waves your array should be '["...","..."]'
+"@" is a delimeter between NPC options
+";" is a delimeter between NPCs
+"npc_metropolice" is a NPC name
+"smg" is a weapon name, must be without 'weapon_' line (If you want to leave no weapon, just write whatever non-weapon string)
+"100" is a health of NPC
+"1" is a buff of NPC (watch BUFFS below), if you want to leave no buff just write '0'
+Anyways, you can chat '!generateNPC' and you'll get a NPC
+
+BUFFS:
+1 - Overheal (50% of max health)
+2 - Heal on taking damage (10 hp*hpMultiplier)
+3 - Regenerating Health (1/10 of Max health)
+4 - Invisibility
+
+BUFF MERGES:
+5 - Overheal + Heal&dmg
+6 - Heal&dmg + Regen
+7 - Regen + Invis
+8 - Invis + Overheal
+9 - Overheal + Regen
+10 - Heal&dmg + Invis
+
+11 - Overheal + Heal&dmg + Regen
+12 - Heal&dmg + Regen + Invis
+13 - Regen + Invis + Overheal
+14 - Invis + Overheal + Heal&dmg
+
+15 - All in one
+]#
+
+if(first() || duped()) {
+    Raid = 1
+    SP = 1
+    Raids = array("npc_antlionguard@_@1000@0")
+    Spawnpoints = array()
+    I=1
+    TimeUntilNextWave = 10000
+    HealthMultiplier = 0.5
+    Particles = 1
+    timer("spawnParticles",1000)
+    timer("regenerateClk",500)
+    runOnChat(1)
+    runOnFile(1)
+    printColor(vec(205,205,205),"Announcer",vec(255,255,255),": Setup raid spawners and chat '!start'")
+}
+
+if(chatClk(owner())){
+    if (owner():lastSaid() == "!start") {
+        hideChat(1)
+        if(Spawnpoints:count() == 0) {
+            Raid = 1
+            if(S1){Spawnpoints:pushEntity(S1)} if(S2){Spawnpoints:pushEntity(S2)} if(S3){Spawnpoints:pushEntity(S3)}
+            if(S4){Spawnpoints:pushEntity(S4)} if(S5){Spawnpoints:pushEntity(S5)} if(S6){Spawnpoints:pushEntity(S6)}
+            if(S7){Spawnpoints:pushEntity(S7)} if(S8){Spawnpoints:pushEntity(S8)} if(S9){Spawnpoints:pushEntity(S9)}
+            printColor(vec(153,0,255),"Raid has awoken!")
+            timer("runRaid",1000)
+        }
+    } elseif (owner():lastSaid() == "!stop") {
+        hideChat(1)
+        if(Spawnpoints:count() > 0) {
+            stopAllTimers()
+            Spawnpoints:clear()
+            timer("spawnParticles",1000)
+            timer("regenerateClk",500)
+            printColor(vec(153,0,255),"Raid is no longer after you.")
+        }
+    } elseif (owner():lastSaid():left(12) == "!generateNPC") {
+        hideChat(1)
+        GNM = owner():lastSaid():explode(" ")
+        if (GNM:count() >= 1) {
+            if (GNM:count() == 1) { print("Usage: !generateNPC <NPC name> <weapon name> <health> <buff>") }
+            else {
+                if (GNM:count() == 2) { printColor(vec(255,255,255),GNM[2,string]) }
+                else {
+                    if (GNM:count() == 3) { printColor(vec(255,255,255),GNM[2,string]+"@"+GNM[3,string]:replace("weapon_","")) }
+                    else {
+                        if (GNM:count() == 4) { printColor(vec(255,255,255),GNM[2,string]+"@"+GNM[3,string]:replace("weapon_","")+"@"+GNM[4,string]) }
+                        else {
+                            printColor(vec(255,255,255),GNM[2,string]+"@"+GNM[3,string]:replace("weapon_","")+"@"+GNM[4,string]+"@"+GNM[5,string])
+        }}}}}
+    } elseif (owner():lastSaid():left(8) == "!save_as") {
+        hideChat(1)
+        if (!fileCanWrite()){
+            printColor(vec(255,155,155),"Error writing file: Can't write file")
+        }else{
+            GNM = owner():lastSaid():explode(" ")
+            if (GNM:count() >= 1) {
+                if (GNM:count() == 1) { print("Usage: !load <File_name>\nLoads raid by given file name") }
+                else {
+                    fileWrite("raids/"+owner():lastSaid():right(owner():lastSaid():length()-9):replace("'",""):replace(" ","_"):replace(".txt","")+".txt",Raids:concat(","))
+                    printColor(vec(155,255,155),"Saved raid '"+fileName() + "' successifully!")
+        }}}
+    } elseif (owner():lastSaid():left(5) == "!load") {
+        hideChat(1)
+        GNM = owner():lastSaid():explode(" ")
+        if (!fileCanLoad()) {
+            printColor(vec(255,155,155),"Error loading file: Can't load file")
+        }else{
+            if (GNM:count() >= 1) {
+                if (GNM:count() == 1) { print("Usage: !load <File_name>\nLoads and rewrites current raid with given raid file name") }
+                else {
+                    fileLoad("raids/"+owner():lastSaid():right(owner():lastSaid():length()-6):replace("'",""):replace(" ","_"):replace(".txt","")+".txt")
+        }}}
+    } elseif (owner():lastSaid() == "!raidslist") {
+        hideChat(1)
+        fileList("raids/")
+    } elseif (owner():lastSaid() == "!help") {
+        hideChat(1)
+        printColor(vec(255,255,255),"Available commands:\n",vec(205,205,205),"!start\n!stop\n!generateNPC\n!save_as\n!load\n!raidslist")
+    }
+}
+
+if (fileClk()) {
+    if (fileLoaded()) {
+        if (fileRead():explode(","):count() == 0) {
+            printColor(vec(255,155,155),"File '"+fileName() + "' is corrupted. Loading has failed.")
+        }else{
+            printColor(vec(155,255,155),"'"+fileName() + "' loaded successifully!")
+            Raids = fileRead():explode(",")
+        }
+    } else {
+        if (fileStatus() == _FILE_404|fileStatus() == _FILE_UNKNOWN) {
+            printColor(vec(255,155,155),"Error loading raid: No such raid file found")
+        } elseif (fileStatus() == _FILE_TIMEOUT) {
+            printColor(vec(255,155,155),"Error loading raid: Took too much time loading file")
+        } elseif (fileStatus() == _FILE_TRANSFER_ERROR) {
+            printColor(vec(255,155,155),"Error loading raid: Transfer error")
+        }
+    }
+}
+
+if(fileListClk("raids/")){
+    printColor(vec(255,255,255),"Raids available:\n",vec(200,200,200),fileReadList():concat("\n"))
+}
+
+if(clk("spawnQuota")){
+    if (SP > Spawnpoints:count()) {
+        SP = 1
+    }
+    CurEntity = Quota:popString():explode("@")
+    Ent = entitySpawn(CurEntity[1,string],Spawnpoints[SP,entity]:pos(),0)
+    if (CurEntity:count() >= 3) { HP = CurEntity[3,string]:toNumber() * HealthMultiplier } else { HP = 100 * HealthMultiplier }
+    if (CurEntity:count() >= 4) {
+        if (CurEntity[4,string]:toNumber() == 1) { Ent:setColor(255,105,105) Ent:setHealth(Ent:health()*1.5) } #Overheal
+        elseif (CurEntity[4,string]:toNumber() == 2) { Ent:setColor(105,255,105) runOnDamage(1,Ent) } #Heal&dmg
+        elseif (CurEntity[4,string]:toNumber() == 3) { Ent:setColor(105,105,255) RegeneratingEntities:pushEntity(Ent)} #Regen
+        elseif (CurEntity[4,string]:toNumber() == 4) { Ent:setColor(vec(255,255,255),55) } #Invis
+        
+        elseif (CurEntity[4,string]:toNumber() == 5) { Ent:setColor(255,255,105) Ent:setHealth(Ent:health()*1.5) runOnDamage(1,Ent) } #Overheal + Heal&dmg
+        elseif (CurEntity[4,string]:toNumber() == 6) { Ent:setColor(105,255,255) runOnDamage(1,Ent) RegeneratingEntities:pushEntity(Ent) } # Heal&dmg + Regen
+        elseif (CurEntity[4,string]:toNumber() == 7) { Ent:setColor(vec(105,105,255),55) RegeneratingEntities:pushEntity(Ent)} # Regen + Invis
+        elseif (CurEntity[4,string]:toNumber() == 8) { Ent:setColor(vec(255,105,105),55) Ent:setHealth(Ent:health()*1.5) } # Invis + Overheal
+        elseif (CurEntity[4,string]:toNumber() == 9) { Ent:setColor(255,105,255) Ent:setHealth(Ent:health()*1.5) } # Overheal + Regen
+        elseif (CurEntity[4,string]:toNumber() == 10) { Ent:setColor(vec(105,255,105),55) runOnDamage(1,Ent) } # Heal&dmg + Invis
+        
+        elseif (CurEntity[4,string]:toNumber() == 11) { Ent:setColor(51,102,51) Ent:setHealth(Ent:health()*1.5) runOnDamage(1,Ent) RegeneratingEntities:pushEntity(Ent) } # Overheal + Heal&dmg + Regen
+        elseif (CurEntity[4,string]:toNumber() == 12) { Ent:setColor(vec(105,255,255),55) runOnDamage(1,Ent) RegeneratingEntities:pushEntity(Ent) } # Heal&dmg + Regen + Invis
+        elseif (CurEntity[4,string]:toNumber() == 13) { Ent:setColor(vec(255,105,255),55) Ent:setHealth(Ent:health()*1.5) RegeneratingEntities:pushEntity(Ent) } # Regen + Invis + Overheal
+        elseif (CurEntity[4,string]:toNumber() == 14) { Ent:setColor(vec(255,255,105),55) Ent:setHealth(Ent:health()*1.5) runOnDamage(1,Ent) } # Invis + Overheal + Heal&dmg
+ 
+        elseif (CurEntity[4,string]:toNumber() == 15) { Ent:setColor(vec(45,45,45),55) Ent:setHealth(Ent:health()*1.5) runOnDamage(1,Ent) RegeneratingEntities:pushEntity(Ent) } # Invis + Overheal + Heal&dmg 
+    }
+    Ent:setMaxHealth(HP) Ent:setHealth(HP)
+    if (CurEntity:count() >= 2) {Ent:npcGiveWeapon(CurEntity[2,string])}
+    Ent:setOwnerNoEntity()
+    Ent:npcGoRun(owner():pos())
+    SP++
+    if (Quota:count() > 0) { timer("spawnQuota",1000) }
+    else{
+        if (Raid > Raids:count()) {Spawnpoints:clear() printColor(vec(153,0,255),"Raid is no longer after you.")}
+    }
+}
+
+if(damageEntClk()){
+    damageEntClk():heal(10*HealthMultiplier)
+}
+
+if(clk("runRaid")) {
+    Raid = 1
+    II = 0
+    if(Spawnpoints:count() == 0){Spawnpoints:pushEntity(entity())}
+    timer("startWave",0)
+}
+
+if(clk("spawnParticles")) {
+    Particles=1
+    while(Particles <= Spawnpoints:count()){
+        particleGravity(vec(0,0,0))
+        particle(1,30,30,"effects/ar2_altfire1",vec(255,255,255),Spawnpoints[Particles,entity]:pos()+vec(0,0,40),vec(0,0,0),0)
+        Particles++
+    }
+    timer("spawnParticles",1000)
+}
+
+if(clk("startWave")){
+    CurRaid = Raids[Raid,string]:explode(";")
+    Quota = CurRaid:clone()
+    timer("spawnQuota",0)
+    printColor(vec(153,0,255),"Wave " + Raid + " starts!")
+    Raid++
+    if (Raid <= Raids:count()) {timer("warningmessage",TimeUntilNextWave/2) timer("startWave",TimeUntilNextWave)}
+}
+
+if(clk("warningmessage")) {
+    RandNum = random()
+    if (Raid == Raids:count()) {
+        if (RandNum>=0.0&&RandNum<0.5){
+            printColor(vec(205,205,205),"Announcer",vec(255,255,255),": Prepare yourselves! The last of the foes will be here in "+TimeUntilNextWave/2000 + " seconds!")
+        }else{
+            printColor(vec(205,205,205),"Announcer",vec(255,255,255),": The final wave will be in " + TimeUntilNextWave/2000 + " seconds, kill the enemies in all costs!")
+        }
+    } else {
+        if (RandNum>=0.0&&RandNum<0.5){
+            printColor(vec(205,205,205),"Announcer",vec(255,255,255),": Incoming foes batallion in "+TimeUntilNextWave/2000 + " seconds!")
+        } else{
+            printColor(vec(205,205,205),"Announcer",vec(255,255,255),": Another wave of enemies will attack in "+TimeUntilNextWave/2000 + " seconds!")
+        }
+    }
+}
+
+if(clk("regenerateClk")){
+    RegenerateI = 1
+    while(RegenerateI <= RegeneratingEntities:count()) {
+        RegEnt = RegeneratingEntities[RegenerateI,entity]
+        if (!RegEnt:isValid()) {RegeneratingEntities:remove(RegenerateI) continue}
+        RegEnt:heal(RegEnt:maxHealth()/10)
+        RegenerateI++
+    }
+    timer("regenerateClk",500)
+}
