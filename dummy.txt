@@ -46,6 +46,7 @@ elseif(clk("combo")) {
     Combo = 0
 }
 elseif (first()|duped()) {
+    enableConstraintUndo(0)
     Props:pushEntity(propSpawn("models/phxtended/bar1x45b.mdl",entity():pos()-vec(-16.6236,22.3141,-2.244),ang(0,45,0),1))
     Props:pushEntity(propSpawn("models/phxtended/bar1x45b.mdl",entity():pos()-vec(-20.1591,-15.1626,-2.304),ang(0,135,0),1))
     Props:pushEntity(propSpawn("models/phxtended/bar1x.mdl",entity():pos()-vec(-3.1634,-2.6802,-55.6799),ang(0,175,-90),0))
