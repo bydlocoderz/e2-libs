@@ -1,7 +1,12 @@
 @name Dummy
 #@author pruf
-@persist [Props Numbers]:array [Ticks LastTicks Combo ComboTimer HP Godmode]:number Str:string
+@persist [Props Numbers]:array [Ticks LastTicks Combo ComboTimer HP Health Godmode]:number Str:string
 interval(100)
+
+#====#
+Godmode = 0
+Health = 1000
+#====#
 
 function void destroy() {
     Props[3,entity]:removeAllConstraints()
@@ -34,7 +39,7 @@ if (damageEntClk()) {
     }
     stoptimer("combo")
     timer("combo",ComboTimer)
-    if(HP <= 0) {destroy()}
+    if(HP <= 0 & Godmode == 0) {destroy()}
 }
 elseif(clk("combo")) {
     spawnNumbers(round(Combo))
@@ -78,8 +83,7 @@ elseif (first()|duped()) {
     "models/sprops/misc/alphanum/alphanum_9.mdl"
     )
     ComboTimer = 100
-    HP = 1000
-    Godmode = 0
+    HP = Health
 }
 else {
     foreach (Key,Value:entity = Props) {
