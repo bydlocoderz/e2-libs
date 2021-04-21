@@ -1,0 +1,101 @@
+@name Dummy
+#@author pruf
+@persist [Props Numbers]:array [Ticks LastTicks Combo ComboTimer HP Godmode]:number Str:string
+interval(100)
+
+function void destroy() {
+    Props[3,entity]:removeAllConstraints()
+    Props[3,entity]:effectSpawn("balloon_pop",10)
+    foreach (Key,Value:entity=Props) {
+        runOnDamage(0,Value)
+    }
+}
+
+function void spawnNumbers(Num:number) {
+    Str = toString(Num)
+    if (Str:length() > holoRemainingSpawns()) {
+        destroy()
+    }
+    for (I=1,Str:length()) {
+        holoCreate(Ticks,entity():pos()+vec(Str:length()*5-I*10,0,100))
+        holoModel(Ticks,Numbers[Str[I]:toNumber()+1,string])
+        Ticks += 1
+    }
+}
+
+if (damageEntClk()) {
+    Dmg = damageEntClk():getDamage()
+    if (damageEntClk():getDamageType() == "blast") {
+        Combo += Dmg/9
+        HP -= Dmg/9
+    } else {
+        Combo += Dmg
+        HP -= Dmg
+    }
+    stoptimer("combo")
+    timer("combo",ComboTimer)
+    if(HP <= 0) {destroy()}
+}
+elseif(clk("combo")) {
+    spawnNumbers(round(Combo))
+    Combo = 0
+}
+elseif (first()|duped()) {
+    Props:pushEntity(propSpawn("models/phxtended/bar1x45b.mdl",entity():pos()-vec(-16.6236,22.3141,-2.244),ang(0,45,0),1))
+    Props:pushEntity(propSpawn("models/phxtended/bar1x45b.mdl",entity():pos()-vec(-20.1591,-15.1626,-2.304),ang(0,135,0),1))
+    Props:pushEntity(propSpawn("models/phxtended/bar1x.mdl",entity():pos()-vec(-3.1634,-2.6802,-55.6799),ang(0,175,-90),0))
+    Props[1,entity]:weldTo(Props[2,entity],1) Props[1,entity]:weldTo(Props[3,entity],1) Props[2,entity]:weldTo(Props[3,entity],0)
+    Props:pushEntity(propSpawn("models/sprops/misc/domes/size_3/dome_36x36.mdl",entity():pos()-vec(0.0447,0.0112,-67.4974),ang(0,100.0185,179.9999),0))
+    Props[4,entity]:setMaterial("models/props/CS_militia/roofbeams01")
+    Props[4,entity]:weldTo(Props[3,entity],1)
+    Props:pushEntity(propSpawn("models/sprops/misc/domes/size_3/dome_36x18.mdl",entity():pos()-vec(0.0449,0.0114,-67.4977),ang(0.0005,-0.0002,0),0))
+    Props[5,entity]:setMaterial("models/props/CS_militia/roofbeams01")
+    Props[5,entity]:weldTo(Props[4,entity],1)
+    Props:pushEntity(propSpawn("models/sprops/cylinders/size_3/cylinder_6x42.mdl",entity():pos()-vec(0.5786,0.89,-69.233),ang(90,180,180),0))
+    Props[6,entity]:setMaterial("models/props_lab/door_klab01")
+    Props[6,entity]:weldTo(Props[5,entity],1) Props[6,entity]:weldTo(Props[4,entity],1)
+    Props:pushEntity(propSpawn("models/sprops/cylinders/size_4/cylinder_9x36.mdl",entity():pos()-vec(-24.5789,2.6278,-51.3331),ang(0,67.4995,0),0))
+    Props[7,entity]:setMaterial("models/props/CS_militia/roofbeams01")
+    ballsocket(Props[7,entity],vec(0,0,22),Props[6,entity])
+    Props:pushEntity(propSpawn("models/sprops/cylinders/size_4/cylinder_9x36.mdl",entity():pos()-vec(25.7361,2.623,-51.333),ang(0.0003,112.501,0),0))
+    Props[8,entity]:setMaterial("models/props/CS_militia/roofbeams01")
+    ballsocket(Props[8,entity],vec(0,0,-22),Props[6,entity])
+    Props:pushEntity(propSpawn("models/maxofs2d/balloon_gman.mdl",entity():pos()-vec(-0.0633,0.0085,-86.0287),ang(0,90,0),0))
+    ballsocket(Props[9,entity],vec(0,0,19),Props[5,entity])
+    foreach (Key,Value:entity = Props) {
+        runOnDamage(1,Value)
+    }
+    Numbers = array(
+    "models/sprops/misc/alphanum/alphanum_0.mdl",
+    "models/sprops/misc/alphanum/alphanum_1.mdl",
+    "models/sprops/misc/alphanum/alphanum_2.mdl",
+    "models/sprops/misc/alphanum/alphanum_3.mdl",
+    "models/sprops/misc/alphanum/alphanum_4.mdl",
+    "models/sprops/misc/alphanum/alphanum_5.mdl",
+    "models/sprops/misc/alphanum/alphanum_6.mdl",
+    "models/sprops/misc/alphanum/alphanum_7.mdl",
+    "models/sprops/misc/alphanum/alphanum_8.mdl",
+    "models/sprops/misc/alphanum/alphanum_9.mdl"
+    )
+    ComboTimer = 100
+    HP = 1000
+    Godmode = 0
+}
+else {
+    foreach (Key,Value:entity = Props) {
+        if (!Value:isValid()) {
+            foreach(K,V:entity = Props) {
+                if (V:isValid()) { V:remove() }
+            }
+            entity():remove()
+            break
+        }
+    }
+    
+    for(I=LastTicks,Ticks) {
+        if (Ticks-LastTicks >= 100) {break}
+        holoPos(I,holoEntity(I):pos()+vec(cos(Ticks*20)*10,sin(Ticks*20)*5,10))
+        holoColor(I,vec((sin(holoEntity(I):pos():z()*10)+1)/2*150+105,45,45))
+        if (holoEntity(I):pos():z() > entity():pos():z() + 200) {holoDelete(I) LastTicks+=1}
+    }
+}
